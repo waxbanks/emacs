@@ -18,6 +18,10 @@
 
 (desktop-save-mode 1)
 
+(defun my-markdown-mode-final-newline-config-fn ()
+  (setq require-final-newline nil))
+
+(add-hook 'markdown-mode-hook 'my-markdown-mode-final-newline-config-fn) ;; so emacs doesn't add a final newline every fucking time we save a md file
 
 ;;(debug-on-entry 'diminish)
 
@@ -294,6 +298,8 @@
 ;; trying to figure out order of operations here
 (setq-default visual-fill-column-center-text t)
 
+(adaptive-wrap-prefix-mode 1)
+
 (use-package adoc-mode
   :ensure t
   :mode "\\.asciidoc\\'"
@@ -308,6 +314,7 @@
   :hook
   (markdown-mode . visual-line-mode)
   (markdown-mode . visual-fill-column-mode)
+  (markdown-mode . adaptive-wrap-prefix-mode)
 ;;  (markdown-mode . centered-cursor-mode)
   :init (setq markdown-command "multimarkdown"))
 
@@ -420,6 +427,7 @@
 
 ;; in ido-find-file (C-x C-f), hit ~ anytime to go to home dir --wgh
 ;; http://whattheemacsd.com/setup-ido.el-02.html
+;; works even though i'm using ivy/consult -- nice
 (add-hook 'ido-setup-hook
  (lambda ()
    ;; Go straight home
@@ -596,6 +604,9 @@
 (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
 (setq projectile-switch-project-action 'neotree-projectile-action) ; switch neotree to whatever project i'm working in
 
+(setq projectile-completion-system 'ivy)
+
+
 ;; visual previews of regex replacement
 (use-package visual-regexp
   :ensure t)
@@ -658,6 +669,15 @@
 ;; (use-package mc-extras
 ;;   :defer t
 ;;   :config (define-key mc/keymap (kbd "C-. =") 'mc/compare-chars))
+
+(use-package google-this
+  :config
+  (google-this-mode 1))
+
+(use-package alert
+  :commands (alert)
+  :init
+  (setq alert-default-style 'notifier))
 
 
 ;; avy-complete: C-j (this is the wonderful vim-style 'jump to any found instance onscreen'
@@ -723,12 +743,15 @@
   :bind ("C-x g" . magit-status)
   :ensure t)
 
+;; (use-package magit-delta
+;;   :hook (magit-mode . magit-delta-mode))
+
 ;; hippie expand
 (global-set-key [remap dabbrev-expand] 'hippie-expand)
 
 
 
-;; cycle through buffers on Ctrl-tab OBVIOUSLY
+;; cycle through buffers -- was C-<tab> but it's awkward, the macos command is better
 ;; iflipb-wrap-around does what you think; it's bizarre that this isn't the default
 (require 'iflipb)
 (setq iflipb-wrap-around t)
@@ -742,8 +765,8 @@
 
 
 (add-hook 'after-init-hook 'global-company-mode)
-;; we don't need this kind of completion in markdown/or 
-(setq company-global-modes '(not org-mode markdown-mode))
+;; we don't need this kind of completion in markdown but it's perfect for org
+(setq company-global-modes '(not markdown-mode)) ;; md-roam might be an issue?
 
 
 
@@ -877,7 +900,11 @@
 (global-set-key (kbd "C-c a") #'org-agenda)
 (global-set-key (kbd "C-c c") #'org-capture)
 
+(use-package exec-path-from-shell
+  :ensure t)
 
+(when (memq window-system '(mac ns x))
+  (exec-path-from-shell-initialize))
 
 ;; config from https://github.com/zzamboni/dot-emacs/blob/master/init.el
 ;; additional functions from https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hacks/
@@ -889,6 +916,7 @@
   :custom
   (org-roam-directory "~/orgroam-wax/")
   (org-roam-completion-everywhere t)
+  
   :bind (("C-c n l" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ("C-c n g" . org-roam-graph)
@@ -914,6 +942,12 @@
   (require 'org-roam-dailies) ;; Ensure the keymap is available
 
   (org-roam-db-autosync-mode))
+
+(setq org-roam-mode-sections
+      (list #'org-roam-backlinks-section
+            #'org-roam-reflinks-section
+            ;;#'org-roam-unlinked-references-section
+            ))
 
 (use-package vulpea
   :ensure t
@@ -1088,18 +1122,22 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; deft                                                                   ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require 'deft)
-(setq deft-directory org-roam-directory) ;; gotta set org-roam-directory first, obvsly
-(setq deft-extensions '("mdown" "org" "txt" "md" "org.gpg"))
-(setq deft-default-extension "mdown")
-(setq deft-text-mode 'markdown-mode)
-(setq deft-use-filename-as-title t)
-(setq deft-use-filter-string-for-filename t)
-(setq deft-auto-save-interval 0)
-(setq deft-current-sort-method 'title)
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (require 'deft)
+;; (setq deft-directory org-roam-directory) ;; gotta set org-roam-directory first, obvsly
+;; (setq deft-extensions '("mdown" "org" "txt" "md" "org.gpg"))
+;; (setq deft-default-extension "mdown")
+;; (setq deft-text-mode 'markdown-mode)
+;; (setq deft-use-filename-as-title t)
+;; (setq deft-use-filter-string-for-filename t)
+;; (setq deft-auto-save-interval 0)
+;; (setq deft-current-sort-method 'title)
+
 ;;shortcut to launch deft
-(global-set-key (kbd "C-c d") 'deft)
+;; (global-set-key (kbd "C-c d") 'deft)
+
+
+
 
 ;; cmd-w, the macos shortcut. accept no substitutes.
 (global-set-key (kbd "s-w") #'kill-current-buffer)
