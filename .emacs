@@ -476,6 +476,14 @@
   (set-face-foreground 'markdown-bold-face "MediumVioletRed"))
 (add-hook 'markdown-mode-hook 'markdown-red-boldital-hook)
 
+(setq org-emphasis-alist
+  '(("*" (bold :foreground "MediumVioletRed" ))
+    ("/" (italic :foreground "MediumVioletRed"))
+    ("_" underline)
+    ("=" (:background "maroon" :foreground "white"))
+    ("~" (:background "deep sky blue" :foreground "MidnightBlue"))
+    ("+" (:strike-through t))))
+
 ;; wrap-region-mode brings us some way toward sublime-text handling of surround-on-* (i.e. emphasize region) --wgh
 ;; no idea why it's putting the cursor at the end of the region, at least in LISP, but...
 (wrap-region-global-mode t)
@@ -852,7 +860,7 @@
                 (prettify-symbols-mode)))
   (org-mode . visual-line-mode)
   (org-mode . visual-fill-column-mode)
-  (org-mode . variable-pitch-mode)
+ ;; (org-mode . fixed-pitch-mode)
   :config
   (font-lock-add-keywords
    'org-mode
@@ -925,11 +933,12 @@
          ("C-c n I" . org-roam-node-insert-immediate)
          ("C-c n p" . my/org-roam-find-project)
          ("C-c n c" . org-roam-capture)
-         ("C-c n t" . my/org-roam-capture-task)
+;;         ("C-c n t" . my/org-roam-capture-task) ;; i don't use this.
          ("C-c n b" . my/org-roam-capture-inbox)
          :map org-mode-map
          ("C-M-i" . completion-at-point)
          ("C-c n m" . org-roam-refile)
+         ("C-c n t" . org-roam-tag-add)
          :map org-roam-dailies-map
          ("Y" . org-roam-dailies-capture-yesterday)
          ("T" . org-roam-dailies-capture-tomorrow))
