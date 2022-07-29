@@ -799,12 +799,13 @@
   ;;    :pin manual
   :load-path ("lisp/org-mode/lisp" "lisp/org-mode/lisp/contrib/lisp")
   :bind
-   (:map org-mode-map
-         ("C-c l" . org-store-link)
-         ("A-h" . org-mark-element)
-         ("C-a" . org-beginning-of-line)
-         ("C-e" . org-end-of-line)
-         ("C-k" . org-kill-line))
+  (:map org-mode-map
+        ("C-'" . nil) ;; reclaiming the avy keybinding from org's agenda cycling command
+        ("C-c l" . org-store-link)
+        ("A-h" . org-mark-element)
+        ("C-a" . org-beginning-of-line)
+        ("C-e" . org-end-of-line)
+        ("C-k" . org-kill-line))
   :custom
   (org-directory "~/org")
   (org-log-done t)
