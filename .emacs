@@ -484,7 +484,7 @@
     ("~" (:background "deep sky blue" :foreground "MidnightBlue"))
     ("+" (:strike-through t))))
 
-;; wrap-region-mode brings us some way toward sublime-text handling of surround-on-* (i.e. emphasize region) --wgh
+;; wrap-region-mode brings us some way toward sublime-text handling of surround-on-* (i.e. emphasize region)
 ;; no idea why it's putting the cursor at the end of the region, at least in LISP, but...
 (wrap-region-global-mode t)
 (wrap-region-add-wrapper "*" "*")
@@ -496,7 +496,7 @@
 (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
 (add-to-list 'auto-mode-alist '("\\.scm\\'" . scheme-mode))
 
-;; always run the calculator in algebraic mode, not RPN --wgh
+;; always run the calculator in algebraic mode, not RPN
 (add-hook 'calc-start-hook 'calc-total-algebraic-mode)
 
 ;; Enable Paredit.
@@ -536,14 +536,14 @@
 ;; (global-set-key (kbd "C-c t") 'show-current-time)
 ;; (global-set-key (kbd "C-c d") 'delete-trailing-whitespace)
 ;; i don't want the delete-trailing-whitespace binding
-;; because trailing whitespace is meaningful in markdown. --wgh
-;; good old Option+arrow --wgh
+;; because trailing whitespace is meaningful in markdown.
+;; good old Option+arrow
 (global-set-key (kbd "M-<up>") 'markdown-backward-paragraph)
 (global-set-key (kbd "M-<down>") 'markdown-forward-paragraph)
 (global-set-key (kbd "s-<up>") 'beginning-of-buffer)
 (global-set-key (kbd "s-<down>") 'end-of-buffer)
 
-;; note that s- == 'super' == 'Cmd' --wgh
+;; note that s- == 'super' == 'Cmd'
 (global-set-key (kbd "s-Z") 'undo-tree-redo) ;; as opposed to built-in redo, obvsly
 
 
@@ -552,7 +552,7 @@
 ;; (unless (server-running-p)
 ;;   (server-start))
 
-;; lorem ipsum --wgh
+;; lorem ipsum
 ;; Key Binding	Function
 ;; C-c l p	lorem-ipsum-insert-paragraphs
 ;; C-c l s	lorem-ipsum-insert-sentences
@@ -563,11 +563,11 @@
 
 
 
-;; groovy modeline --wgh
+;; groovy modeline
 (require 'spaceline-config)
 (spaceline-emacs-theme)
 
-;; Yet Another Snippet mode -- oh my god, sublime-style tab snippets --wgh
+;; Yet Another Snippet mode -- oh my god, sublime-style tab snippets
 ;; snippets are at -- https://github.com/AndreaCrotti/yasnippet-snippets
 ;; (add-to-list 'load-path
 ;;               "~/.emacs.d/plugins/yasnippet")
@@ -577,7 +577,7 @@
         ))
 (yas-global-mode 1)
 
-;; improve delete-current-line (Shift+Ctrl+Backspace) --wgh
+;; improve delete-current-line (Shift+Ctrl+Backspace)
 ;; this is NOT a replacement for Cmd+Backspace, look that up tk TODO
 (defun delete-current-line ()
   "Delete (not kill) the current line."
@@ -587,26 +587,26 @@
      (progn (forward-visible-line 0) (point))
      (progn (forward-visible-line 1) (point)))))
 
-;; cursor is an i-beam instead of a dancing square --wgh
+;; cursor is an i-beam instead of a dancing square
 (modify-all-frames-parameters (list (cons 'cursor-type 'bar)))
 
-;; visual-fill-column mode --wgh
+;; visual-fill-column mode
 ;; (setq-default visual-fill-column-center-text t)
 
-;; let's get scheme running for some SICP action TODO --wgh
+;; let's get scheme running for some SICP action TODO
 ;;(setq geiser-mit-binary "/usr/local/bin/scheme")
 ;;(setq geiser-active-implementations '(mit))
 
 (setq-default scheme-program-name "/usr/local/bin/scheme")
 
-;; expand selected region, excellent --wgh
+;; expand selected region, excellent
 (require 'expand-region)
 (global-set-key (kbd "C-=") 'er/expand-region)
 
-;; auto-update files that change externally to emacs --wgh
+;; auto-update files that change externally to emacs
 (global-auto-revert-mode)
 
-;; project management --wgh
+;; project management
 (projectile-mode +1)
 ;; Recommended keymap prefix on macOS
 (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
@@ -628,7 +628,7 @@
 ;; if you use multiple-cursors, this is for you:
 ;; (define-key global-map (kbd "C-c m") 'vr/mc-mark)
 
-;; nice icons for projectile-mode and centaur-tabs --wgh
+;; nice icons for projectile-mode and centaur-tabs
 (use-package all-the-icons
   :ensure t
   :defer t)
@@ -742,7 +742,7 @@
 ;; this was C-' but i like the 'jump' mnemonic and i hate the newline thing
 ;; (bind-keys* ("C-j". avy-goto-char-timer)) ;; dependent on bind-keys* macro which comes from use-package
 ;; following line doesn't work in every context
-(global-set-key (kbd "C-'") 'avy-goto-char-timer) ;; this is the shit -- search what's visible --wgh
+(global-set-key (kbd "C-'") 'avy-goto-char-timer) ;; this is the shit -- search what's visible
 
 ;; BUT!! it's C-' to use avy to jump to one of the onscreen swiper results!! TODOs
 
@@ -1203,7 +1203,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; sacha chua's live word count --wgh  ;;
+;; sacha chua's live word count  ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar count-words-buffer
