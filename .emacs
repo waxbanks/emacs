@@ -33,11 +33,17 @@
 
 (require 'diminish)
 
+(setq org-directory "~/org")
+
+
 ;; keep the .emacs.d space clean, to aid in syncing files
 (use-package no-littering
   :ensure t)
 
 (add-to-list 'load-path "~/.emacs.d/lisp")
+
+(global-set-key (kbd "s-T") 'ns-popup-font-panel) ;; so we can bind Cmd-t to a tab-related function
+
 
 ;; preliminaries
 
@@ -109,6 +115,7 @@
 
 (use-package paredit
   :ensure t
+  :defer t
   :diminish paredit-mode)
 
 (use-package company
@@ -122,6 +129,7 @@
 
 (use-package flyspell
   :ensure t
+  :defer t
   :diminish flyspell-mode
   :init
   (add-hook 'prog-mode-hook 'flyspell-prog-mode)
@@ -140,45 +148,15 @@
         ispell-list-command "--list"
         ispell-local-dictionary-alist '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "['‘’]"
                                       t ; Many other characters
-                                      ("-d" "en_US") nil utf-8))))
-
-(use-package flyspell
-  :config
+                                      ("-d" "en_US") nil utf-8)))
   (defun flyspell-detect-ispell-args (&optional run-together)
     "if RUN-TOGETHER is true, spell check the CamelCase words."
     (let (args)
       (setq args (list "--sug-mode=ultra" "--lang=en_US"))
       (if run-together
           (setq args (append args '("--run-together" "--run-together-limit=5" "--run-together-min=2"))))
-      args))
+      args)))
 
-  ;; ispell-cmd-args is useless, it's the list of *extra* arguments we will append to the ispell process when "ispell-word" is called.
-  ;; ispell-extra-args is the command arguments which will *always* be used when start ispell process
-  (setq-default ispell-extra-args (flyspell-detect-ispell-args t))
-
-  (defadvice ispell-word (around my-ispell-word activate)
-    (let ((old-ispell-extra-args ispell-extra-args))
-      (ispell-kill-ispell t)
-      (setq ispell-extra-args (flyspell-detect-ispell-args))
-      ad-do-it
-      (setq ispell-extra-args old-ispell-extra-args)
-      (ispell-kill-ispell t)))
-
-  (defadvice flyspell-auto-correct-word (around my-flyspell-auto-correct-word activate)
-    (let ((old-ispell-extra-args ispell-extra-args))
-      (ispell-kill-ispell t)
-      ;; use emacs original arguments
-      (setq ispell-extra-args (flyspell-detect-ispell-args))
-      ad-do-it
-      ;; restore our own ispell arguments
-      (setq ispell-extra-args old-ispell-extra-args)
-      (ispell-kill-ispell t)))
-
-  (defun text-mode-hook-setup ()
-    ;; Turn off RUN-TOGETHER option when spell check text-mode
-    (setq-local ispell-extra-args (flyspell-detect-ispell-args)))
-
-  (add-hook 'text-mode-hook 'text-mode-hook-setup))
 
 (defun flyspell-goto-previous-error (arg)
   "Go to ARG previous spelling error."
@@ -279,11 +257,12 @@
 
 ;; replacing the following with ace-window
 ;; (global-set-key (kbd "M-o") #'crux-other-window-or-switch-buffer)
-(use-package ace-window
+(use-package ace-window ;; like avy for windows
   :ensure t)
 (global-set-key (kbd "M-o") 'ace-window)
 (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)) ;; for ergonomics, else 12345
 (setq aw-dispatch-always t)
+
 ;; use ibuffer instead of buffer-menu
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
@@ -302,6 +281,7 @@
 
 (use-package adoc-mode
   :ensure t
+  :defer t
   :mode "\\.asciidoc\\'"
   :hook
   (adoc-mode . visual-line-mode)
@@ -331,15 +311,15 @@
 ;; md-roam needs to be loaded before org-roam
 ;;  (setq org-roam-file-extensions '("org" "md" "mdown")) ; enable Org-roam to use markdown extension
 
-(require 'md-roam)
-(md-roam-mode 1)
-(setq md-roam-file-extension "mdown")
+;; (require 'md-roam)
+;; (md-roam-mode 1)
+;; (setq md-roam-file-extension "mdown")
 
-(add-to-list 'org-roam-capture-templates
-    '("m" "Markdown" plain "" :target
-        (file+head "%<%Y-%m-%dT%H%M%S>.mdown"
-"---\ntitle: ${title}\nid: %<%Y-%m-%dT%H%M%S>\ncategory: \n---\n")
-        :unnarrowed t))
+;; (add-to-list 'org-roam-capture-templates
+;;     '("m" "Markdown" plain "" :target
+;;         (file+head "%<%Y-%m-%dT%H%M%S>.mdown"
+;; "---\ntitle: ${title}\nid: %<%Y-%m-%dT%H%M%S>\ncategory: \n---\n")
+;;         :unnarrowed t))
 
 ;; ignore right-to-left languages to prevent lag --wgh
 (setq-default bidi-paragraph-direction 'left-to-right)
@@ -347,7 +327,7 @@
 (if (version<= "27.1" emacs-version)
     (setq bidi-inhibit-bpa t))
 
-;; this might not be necessary, it's prophylactic against slowdown. --wgh
+;; prophylactic against slowdown. --wgh
 (if (version<= "27.1" emacs-version)
     (global-so-long-mode 1))
 
@@ -364,6 +344,9 @@
       '("Emacs: " (:eval (if (buffer-file-name)
                                               (abbreviate-file-name (buffer-file-name))
                                             "%b"))))
+
+(use-package s)
+(use-package dash)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;; fonts etc ;;;;;;;;;;;;;;;;;;;
@@ -571,7 +554,12 @@
 ;; snippets are at -- https://github.com/AndreaCrotti/yasnippet-snippets
 ;; (add-to-list 'load-path
 ;;               "~/.emacs.d/plugins/yasnippet")
-(require 'yasnippet)
+
+(use-package yasnippet
+  :ensure t
+  :defer 10)
+
+;;(require 'yasnippet)
 (setq yas-snippet-dirs
       '("~/.emacs.d/snippets"                 ;; personal snippets
         ))
@@ -635,6 +623,7 @@
 
 (use-package neotree
   :ensure t
+  :defer t
   :custom
   (neo-theme (if (display-graphic-p) 'icons 'arrow))
   (neo-smart-open t)
@@ -679,10 +668,12 @@
 ;;   :config (define-key mc/keymap (kbd "C-. =") 'mc/compare-chars))
 
 (use-package google-this
+  :defer t
   :config
   (google-this-mode 1))
 
 (use-package alert
+  :defer t
   :commands (alert)
   :init
   (setq alert-default-style 'notifier))
@@ -718,6 +709,7 @@
 ;; ;; ;; ;; ;; enable this if you want `swiper' to use it
 ;; (setq search-default-mode #'char-fold-to-regexp)
 (global-set-key (kbd "C-s") 'swiper-isearch) ;; C-s to cycle through matches, and C-s C-s to repeat search on next invocation
+(global-set-key (kbd "s-f") 'swiper-isearch) ;; Cmd-F just like mama used to make
 (global-set-key (kbd "C-c C-r") 'ivy-resume)
 (global-set-key (kbd "<f6>") 'ivy-resume)
 (global-set-key (kbd "M-x") 'counsel-M-x)
@@ -748,6 +740,7 @@
 
 ;; magit
 (use-package magit
+  :defer t
   :bind ("C-x g" . magit-status)
   :ensure t)
 
@@ -791,6 +784,7 @@
 
 (use-package org-bullets
   :defer t
+  :after org
   :ensure t
   :hook
   (org-mode . (lambda () (org-bullets-mode 1))))
@@ -807,7 +801,7 @@
         ("C-e" . org-end-of-line)
         ("C-k" . org-kill-line))
   :custom
-  (org-directory "~/org")
+  (setq org-directory "~/org")
   (org-log-done t)
   (org-startup-indented t)
   (org-log-into-drawer t)
@@ -877,7 +871,7 @@
       1 'org-checkbox-done-text prepend))
    'append)
   (let* ((variable-tuple
-          (cond ((x-list-fonts   "Optima")         '(:font   "Optima"))
+          (cond ((x-list-fonts   "SF Mono")         '(:font   "SF Mono"))
                 ((x-list-fonts   "Source Sans Pro") '(:font   "Source Sans Pro"))
                 ((x-list-fonts   "Lucida Grande")   '(:font   "Lucida Grande"))
                 ((x-list-fonts   "Verdana")         '(:font   "Verdana"))
@@ -917,72 +911,72 @@
 
 ;; config from https://github.com/zzamboni/dot-emacs/blob/master/init.el
 ;; additional functions from https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hacks/
-(use-package org-roam
-  :ensure t
-  :demand t  ;; Ensure org-roam is loaded by default
-  :init
-  (setq org-roam-v2-ack t)
-  :custom
-  (org-roam-directory "~/orgroam-wax/")
-  (org-roam-completion-everywhere t)
+;; (use-package org-roam
+;;   :ensure t
+;;   :demand t  ;; Ensure org-roam is loaded by default
+;;   :init
+;;   (setq org-roam-v2-ack t)
+;;   :custom
+;;   (org-roam-directory "~/orgroam-wax/")
+;;   (org-roam-completion-everywhere t)
   
-  :bind (("C-c n l" . org-roam-buffer-toggle)
-         ("C-c n f" . org-roam-node-find)
-         ("C-c n g" . org-roam-graph)
-         ("C-c n n" . org-id-get-create) ;; this doesn't actually work
-         ("C-c n i" . org-roam-node-insert)
-         ("C-c n I" . org-roam-node-insert-immediate)
-         ("C-c n p" . my/org-roam-find-project)
-         ("C-c n c" . org-roam-capture)
-;;         ("C-c n t" . my/org-roam-capture-task) ;; i don't use this.
-         ("C-c n b" . my/org-roam-capture-inbox)
-         :map org-mode-map
-         ("C-M-i" . completion-at-point)
-         ("C-c n m" . org-roam-refile)
-         ("C-c n t" . org-roam-tag-add)
-         :map org-roam-dailies-map
-         ("Y" . org-roam-dailies-capture-yesterday)
-         ("T" . org-roam-dailies-capture-tomorrow))
-  :bind-keymap
-  ("C-c n d" . org-roam-dailies-map)
-  :hook
-  (org-roam-mode . visual-line-mode)
-  (org-roam-mode . visual-fill-column-mode)
-  :config
-  (require 'org-roam-dailies) ;; Ensure the keymap is available
+;;   :bind (("C-c n l" . org-roam-buffer-toggle)
+;;          ("C-c n f" . org-roam-node-find)
+;;          ("C-c n g" . org-roam-graph)
+;;          ("C-c n n" . org-id-get-create) ;; this doesn't actually work
+;;          ("C-c n i" . org-roam-node-insert)
+;;          ("C-c n I" . org-roam-node-insert-immediate)
+;;          ("C-c n p" . my/org-roam-find-project)
+;;          ("C-c n c" . org-roam-capture)
+;; ;;         ("C-c n t" . my/org-roam-capture-task) ;; i don't use this.
+;;          ("C-c n b" . my/org-roam-capture-inbox)
+;;          :map org-mode-map
+;;          ("C-M-i" . completion-at-point)
+;;          ("C-c n m" . org-roam-refile)
+;;          ("C-c n t" . org-roam-tag-add)
+;;          :map org-roam-dailies-map
+;;          ("Y" . org-roam-dailies-capture-yesterday)
+;;          ("T" . org-roam-dailies-capture-tomorrow))
+;;   :bind-keymap
+;;   ("C-c n d" . org-roam-dailies-map)
+;;   :hook
+;;   (org-roam-mode . visual-line-mode)
+;;   (org-roam-mode . visual-fill-column-mode)
+;;   :config
+;;   (require 'org-roam-dailies) ;; Ensure the keymap is available
 
-  (org-roam-db-autosync-mode))
+;;   (org-roam-db-autosync-mode))
 
-(setq org-roam-mode-sections
-      (list #'org-roam-backlinks-section
-            #'org-roam-reflinks-section
-            ;;#'org-roam-unlinked-references-section
-            ))
+;; (setq org-roam-mode-sections
+;;       (list #'org-roam-backlinks-section
+;;             #'org-roam-reflinks-section
+;;             ;;#'org-roam-unlinked-references-section
+;;             ))
 
-(use-package vulpea
-  :ensure t
-  ;; hook into org-roam-db-autosync-mode you wish to enable
-  ;; persistence of meta values (see respective section in README to
-  ;; find out what meta means)
-  :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable)))
+;; (use-package vulpea
+;;   :ensure t
+;;   ;; hook into org-roam-db-autosync-mode you wish to enable
+;;   ;; persistence of meta values (see respective section in README to
+;;   ;; find out what meta means)
+;;   :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable)))
 
-(add-to-list 'display-buffer-alist
-             '("\\*org-roam\\*"
-               (display-buffer-in-direction)
-               (direction . right)
-               (window-width . 0.33)
-               (window-height . fit-window-to-buffer)))
+;; (add-to-list 'display-buffer-alist
+;;              '("\\*org-roam\\*"
+;;                (display-buffer-in-direction)
+;;                (direction . right)
+;;                (window-width . 0.33)
+;;                (window-height . fit-window-to-buffer)))
 
-(defun org-roam-node-insert-immediate (arg &rest args)
-  (interactive "P")
-  (let ((args (push arg args))
-        (org-roam-capture-templates (list (append (car org-roam-capture-templates)
-                                                  '(:immediate-finish t)))))
-    (apply #'org-roam-node-insert args)))
+;; (defun org-roam-node-insert-immediate (arg &rest args)
+;;   (interactive "P")
+;;   (let ((args (push arg args))
+;;         (org-roam-capture-templates (list (append (car org-roam-capture-templates)
+;;                                                   '(:immediate-finish t)))))
+;;     (apply #'org-roam-node-insert args)))
 
-(defun my/org-roam-filter-by-tag (tag-name)
-  (lambda (node)
-    (member tag-name (org-roam-node-tags node))))
+;; (defun my/org-roam-filter-by-tag (tag-name)
+  ;; (lambda (node)
+  ;;   (member tag-name (org-roam-node-tags node))))
 
 ;; commenting out the next two defuns in order to get the normal org-agenda-files location here
 ;; but eventually i won't want to do that
@@ -1006,86 +1000,87 @@
 ;; Build the agenda list the first time for the session
 ;; (my/org-roam-refresh-agenda-list)
 
-(defun my/org-roam-project-finalize-hook ()
-  "Adds the captured project file to `org-agenda-files' if the capture was not aborted."
-  ;; Remove the hook since it was added temporarily
-  (remove-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
+;; (defun my/org-roam-project-finalize-hook ()
+;;   "Adds the captured project file to `org-agenda-files' if the capture was not aborted."
+;;   ;; Remove the hook since it was added temporarily
+;;   (remove-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
 
-  ;; Add project file to the agenda list if the capture was confirmed
-  (unless org-note-abort
-    (with-current-buffer (org-capture-get :buffer)
-      (add-to-list 'org-agenda-files (buffer-file-name)))))
+;;   ;; Add project file to the agenda list if the capture was confirmed
+;;   (unless org-note-abort
+;;     (with-current-buffer (org-capture-get :buffer)
+;;       (add-to-list 'org-agenda-files (buffer-file-name)))))
 
-(defun my/org-roam-find-project ()
-  (interactive)
-  ;; Add the project file to the agenda after capture is finished
-  (add-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
+;; (defun my/org-roam-find-project ()
+;;   (interactive)
+;;   ;; Add the project file to the agenda after capture is finished
+;;   (add-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
 
-  ;; Select a project file to open, creating it if necessary
-  (org-roam-node-find
-   nil
-   nil
-   (my/org-roam-filter-by-tag "Project")
-   :templates
-   '(("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
-      :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+category: ${title}\n#+filetags: Project")
-      :unnarrowed t))))
+;;   ;; Select a project file to open, creating it if necessary
+;;   (org-roam-node-find
+;;    nil
+;;    nil
+;;    (my/org-roam-filter-by-tag "Project")
+;;    :templates
+;;    '(("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
+;;       :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+category: ${title}\n#+filetags: Project")
+;;       :unnarrowed t))))
 
-(defun my/org-roam-capture-inbox ()
-  (interactive)
-  (org-roam-capture- :node (org-roam-node-create)
-                     :templates '(("i" "inbox" plain "* %?"
-                                  :if-new (file+head "Inbox.org" "#+title: Inbox\n")))))
+;; (defun my/org-roam-capture-inbox ()
+;;   (interactive)
+;;   (org-roam-capture- :node (org-roam-node-create)
+;;                      :templates '(("i" "inbox" plain "* %?"
+;;                                   :if-new (file+head "Inbox.org" "#+title: Inbox\n")))))
 
-(defun my/org-roam-capture-task ()
-  (interactive)
-  ;; Add the project file to the agenda after capture is finished
-;;  (add-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook) ;; cut b/c roam files are already in org-roam-files
+;; (defun my/org-roam-capture-task ()
+;;   (interactive)
+;;   ;; Add the project file to the agenda after capture is finished
+;; ;;  (add-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook) ;; cut b/c roam files are already in org-roam-files
 
-  ;; Capture the new task, creating the project file if necessary
-  (org-roam-capture- :node (org-roam-node-read
-                            nil
-                            (my/org-roam-filter-by-tag "Project"))
-                     :templates '(("p" "project" plain "** TODO %?"
-                                   :if-new (file+head+olp "%<%Y%m%d%H%M%S>-${slug}.org"
-                                                          "#+title: ${title}\n#+category: ${title}\n#+filetags: Project"
-                                                          ("Tasks"))))))
+;;   ;; Capture the new task, creating the project file if necessary
+;;   (org-roam-capture- :node (org-roam-node-read
+;;                             nil
+;;                             (my/org-roam-filter-by-tag "Project"))
+;;                      :templates '(("p" "project" plain "** TODO %?"
+;;                                    :if-new (file+head+olp "%<%Y%m%d%H%M%S>-${slug}.org"
+;;                                                           "#+title: ${title}\n#+category: ${title}\n#+filetags: Project"
+;;                                                           ("Tasks"))))))
 
-(defun my/org-roam-copy-todo-to-today ()
-  (interactive)
-  (let ((org-refile-keep t) ;; Set this to nil to delete the original!
-        (org-roam-dailies-capture-templates
-          '(("t" "tasks" entry "%?"
-             :if-new (file+head+olp "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n" ("Tasks")))))
-        (org-after-refile-insert-hook #'save-buffer)
-        today-file
-        pos)
-    (save-window-excursion
-      (org-roam-dailies--capture (current-time) t)
-      (setq today-file (buffer-file-name))
-      (setq pos (point)))
+;; (defun my/org-roam-copy-todo-to-today ()
+;;   (interactive)
+;;   (let ((org-refile-keep t) ;; Set this to nil to delete the original!
+;;         (org-roam-dailies-capture-templates
+;;           '(("t" "tasks" entry "%?"
+;;              :if-new (file+head+olp "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n" ("Tasks")))))
+;;         (org-after-refile-insert-hook #'save-buffer)
+;;         today-file
+;;         pos)
+;;     (save-window-excursion
+;;       (org-roam-dailies--capture (current-time) t)
+;;       (setq today-file (buffer-file-name))
+;;       (setq pos (point)))
 
-    ;; Only refile if the target file is different than the current file
-    (unless (equal (file-truename today-file)
-                   (file-truename (buffer-file-name)))
-      (org-refile nil nil (list "Tasks" today-file nil pos)))))
+;;     ;; Only refile if the target file is different than the current file
+;;     (unless (equal (file-truename today-file)
+;;                    (file-truename (buffer-file-name)))
+;;       (org-refile nil nil (list "Tasks" today-file nil pos)))))
 
-(add-to-list 'org-after-todo-state-change-hook
-             (lambda ()
-               (when (equal org-state "DONE")
-                 (my/org-roam-copy-todo-to-today))))
+;; (add-to-list 'org-after-todo-state-change-hook
+;;              (lambda ()
+;;                (when (equal org-state "DONE")
+;;                  (my/org-roam-copy-todo-to-today))))
 
 
-;; fulltext search in org-roam dir using ag -- but this gives multiple hits per file, which i sorta dislike
-;; TODO: figure out a search tool (rg?) that returns 'any file that includes this string'
-(defun jmb/counsel-ag-roam ()
- "Do counsel-ag on the org roam directory"
- (interactive)
- (counsel-ag nil org-roam-directory))
-(global-set-key (kbd "C-c n r") 'jmb/counsel-ag-roam)
+;; ;; fulltext search in org-roam dir using ag -- but this gives multiple hits per file, which i sorta dislike
+;; ;; TODO: figure out a search tool (rg?) that returns 'any file that includes this string'
+;; (defun jmb/counsel-ag-roam ()
+;;  "Do counsel-ag on the org roam directory"
+;;  (interactive)
+;;  (counsel-ag nil org-roam-directory))
+;; (global-set-key (kbd "C-c n r") 'jmb/counsel-ag-roam)
 
 ;; transient highlighting of certain buffer operations, e.g. paste/undo
 (use-package volatile-highlights
+  :defer t
   :ensure t
   :diminish
   :config
@@ -1101,6 +1096,7 @@
 
 (use-package darkroom
   :commands darkroom-mode
+  :defer t
   :config
   (setq darkroom-text-scale-increase 0)
   (darkroom-mode 0))
@@ -1152,6 +1148,10 @@
 ;; cmd-w, the macos shortcut. accept no substitutes.
 (global-set-key (kbd "s-w") #'kill-current-buffer)
 
+
+
+
+
 ;; xah lee efficiency advice
 (defalias 'yes-or-no-p 'y-or-n-p) ; y or n is enough
 (defalias 'list-buffers 'ibuffer) ; always use ibuffer
@@ -1173,11 +1173,13 @@
 
 
 (use-package ox-asciidoc
+  :defer t
   :ensure t
   :after org)
 
 ;; search in org-mode; this supersedes org-rifle
 (use-package org-ql
+  :defer t
   :quelpa (org-ql :fetcher github :repo "alphapapa/org-ql"
             :files (:defaults (:exclude "helm-org-ql.el"))))
 
@@ -1200,6 +1202,7 @@
 (diminish 'org-indent-mode)
 (diminish 'wrap-region-mode)
 (diminish 'volatile-highlights-mode)
+(diminish 'google-this-mode)
 
 
 
@@ -1263,6 +1266,16 @@
   (dirvish-override-dired-mode)
   (global-set-key (kbd "s-D") 'dirvish) ;; was previously bound to dired -- can always regress
   ;; note that C-x C-j is bound to dired-jump -- which now kicks to dirvish!!
+  (global-set-key (kbd "C-S-s-d") 'dirvish-bookmark-jump)
+  :custom
+  (dirvish-quick-access-entries
+   '(("h" "~/"                          "Home")
+;;     ("d" "~/Downloads/"                "Downloads")
+     ("d" "~/Dropbox/"                  "Dropbox")
+     ("z" "~/Dropbox/zettel/"           "Zettel")
+     ("w" "~/Dropbox/highweirdness/"    "highweirdness")
+     ("t" "~/.Trash/"                   "Trash")
+     ("e" "~/.emacs.d/"                 ".emacs.d")))
   :config
 ;;  (require 'dirvish-minibuffer-preview)
   ;;  (dirvish-minibuf-preview-mode)
@@ -1285,11 +1298,12 @@
    ;; ("l" . dired-find-file)
    ;; ("i" . wdired-change-to-wdired-mode)
    ;; ("." . dired-omit-mode)
-   ("b"   . dirvish-bookmark-jump)
+   ("^"   . dired-up-directory) ;; this should be default behaviour, dunno what's up TK
+   ("b"   . dirvish-quick-access) ;; 'b' for 'bookmark'
    ("f"   . dirvish-file-info-menu)
    ("y"   . dirvish-yank-menu)
    ("N"   . dirvish-narrow)
-   ("^"   . dirvish-history-last)
+   ("s-["   . dirvish-history-last)
    ("s"   . dirvish-quicksort)  ; remapped `dired-sort-toggle-or-edit'
    ("?"   . dirvish-dispatch)   ; remapped `dired-summary'
    ("TAB" . dirvish-subtree-toggle)
@@ -1305,6 +1319,130 @@
 
 (eval-after-load 'markdown-mode
   '(define-key markdown-mode-map (kbd "s-b") 'markdown-preview-file)) ;; duplicate sublimetext Cmd-B for 'build'
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; denote ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+(require 'denote)
+
+(with-eval-after-load 'org-capture
+  (require 'denote-org-capture)
+  (add-to-list 'org-capture-templates
+               '("n" "New note (with Denote)" plain
+                 (file denote-last-path)
+                 #'denote-org-capture
+                 :no-save t
+                 :immediate-finish nil
+                 :kill-buffer t
+                 :jump-to-captured t)))
+
+;; Remember to check the doc strings of those variables.
+(setq denote-directory (expand-file-name "~/Dropbox/zettel/"))
+(setq denote-known-keywords '("emacs" "media" "zettelkasten" "games"))
+(setq denote-infer-keywords t)
+(setq denote-sort-keywords t)
+(setq denote-file-type 'markdown-yaml) ; Org is the default, set others here
+(setq denote-prompts '(title keywords))
+
+;; We allow multi-word keywords by default.  The author's personal
+;; preference is for single-word keywords for a more rigid workflow.
+(setq denote-allow-multi-word-keywords t)
+
+(setq denote-date-format nil) ; read doc string
+
+;; You will not need to `require' all those individually once the
+;; package is available.
+(require 'denote-retrieve)
+(require 'denote-link)
+
+;; By default, we fontify backlinks in their bespoke buffer.
+(setq denote-link-fontify-backlinks t)
+
+;; Also see `denote-link-backlinks-display-buffer-action' which is a bit
+;; advanced.
+
+;; If you use Markdown or plain text files (Org renders links as buttons
+;; right away)
+(add-hook 'find-file-hook #'denote-link-buttonize-buffer)
+
+(require 'denote-dired)
+(setq denote-dired-rename-expert nil)
+
+;; We use different ways to specify a path for demo purposes.
+(setq denote-dired-directories
+      (list denote-directory
+            (thread-last denote-directory (expand-file-name "attachments"))
+            (expand-file-name "~/Documents/books")))
+
+;; Generic (great if you rename files Denote-style in lots of places):
+;; (add-hook 'dired-mode-hook #'denote-dired-mode)
+;;
+;; OR if only want it in `denote-dired-directories':
+(add-hook 'dired-mode-hook #'denote-dired-mode-in-directories)
+
+;; Here is a custom, user-level command from one of the examples we
+;; showed in this manual.  We define it here and add it to a key binding
+;; below.
+(defun my-denote-journal ()
+  "Create an entry tagged 'journal', while prompting for a title."
+  (interactive)
+  (denote
+   (denote--title-prompt)
+   '("journal")))
+
+;; Denote DOES NOT define any key bindings.  This is for the user to
+;; decide.  For example:
+(let ((map global-map))
+  (define-key map (kbd "C-c n j") #'my-denote-journal) ; our custom command
+  (define-key map (kbd "C-c n n") #'denote)
+  (define-key map (kbd "C-c n N") #'denote-type)
+  (define-key map (kbd "C-c n d") #'denote-date)
+  (define-key map (kbd "C-c n s") #'denote-subdirectory)
+  ;; If you intend to use Denote with a variety of file types, it is
+  ;; easier to bind the link-related commands to the `global-map', as
+  ;; shown here.  Otherwise follow the same pattern for `org-mode-map',
+  ;; `markdown-mode-map', and/or `text-mode-map'.
+  (define-key map (kbd "C-c n i") #'denote-link) ; "insert" mnemonic
+  (define-key map (kbd "C-c n I") #'denote-link-add-links)
+  (define-key map (kbd "C-c n l") #'denote-link-find-file) ; "list" links
+  (define-key map (kbd "C-c n b") #'denote-link-backlinks)
+  ;; Note that `denote-dired-rename-file' can work from any context, not
+  ;; just Dired bufffers.  That is why we bind it here to the
+  ;; `global-map'.
+  (define-key map (kbd "C-c n r") #'denote-dired-rename-file)
+  (define-key map (kbd "C-c n R") #'denote-dired-rename-file-and-add-front-matter))
+
+;; Key bindings specifically for Dired.
+(let ((map dired-mode-map))
+  (define-key map (kbd "C-c C-d C-i") #'denote-link-dired-marked-notes)
+  (define-key map (kbd "C-c C-d C-r") #'denote-dired-rename-marked-files)
+  (define-key map (kbd "C-c C-d C-R") #'denote-dired-rename-marked-files-and-add-front-matters))
+
+(with-eval-after-load 'org-capture
+  (require 'denote-org-capture)
+  (setq denote-org-capture-specifiers "%l\n%i\n%?")
+  (add-to-list 'org-capture-templates
+               '("n" "New note (with denote.el)" plain
+                 (file denote-last-path)
+                 #'denote-org-capture
+                 :no-save t
+                 :immediate-finish nil
+                 :kill-buffer t
+                 :jump-to-captured t)))
+
+
+
+
+;;;; enable sane right-click behaviour -- i never, ever want the default
+(context-menu-mode)
+
+;; highlight results when using M-x ag
+(setq ag-highlight-search t)
 
 ;; necessary after raising this threshold up top
 (setq gc-cons-threshold (* 2 1000 1000))
