@@ -16,6 +16,15 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
+(use-package benchmark-init
+  :ensure t
+  :config
+  ;; To disable collection of benchmark data after init is done.
+  (add-hook 'after-init-hook 'benchmark-init/deactivate))
+
+(use-package s)
+(use-package dash)
+
 (desktop-save-mode 1)
 
 (defun my-markdown-mode-final-newline-config-fn ()
@@ -35,6 +44,9 @@
 
 (setq org-directory "~/org")
 
+(use-package burly
+  :defer t
+  :quelpa (burly :fetcher github :repo "alphapapa/burly.el"))
 
 ;; keep the .emacs.d space clean, to aid in syncing files
 (use-package no-littering
@@ -65,6 +77,13 @@
 
 ;; Consider a period followed by a single space to be end of sentence.
 (setq sentence-end-double-space nil)
+
+;; don't put cursor at border of window just because we're at fill-column
+;; the trouble here is that it makes the placement of a word ending right at the
+;; fill column VARIABLE -- i consider this incorrect, buggy behaviour but maybe
+;; i can get used to it?
+;; -- not setting this yet but it's here TK if i need it TODO
+(setq overflow-newline-into-fringe nil)
 
 ;; Use spaces, not tabs, for indentation.
 (setq-default indent-tabs-mode nil)
@@ -224,6 +243,7 @@
 
 (use-package ivy-rich
   :ensure t
+  :defer t
   :config (ivy-rich-mode 1)
   (setcdr (assq t ivy-format-functions-alist) #'ivy-format-function-line))
 
@@ -258,6 +278,7 @@
 ;; replacing the following with ace-window
 ;; (global-set-key (kbd "M-o") #'crux-other-window-or-switch-buffer)
 (use-package ace-window ;; like avy for windows
+  :defer t
   :ensure t)
 (global-set-key (kbd "M-o") 'ace-window)
 (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)) ;; for ergonomics, else 12345
@@ -290,13 +311,28 @@
 ;; yes --wgh
 (use-package markdown-mode
   :ensure t
+  :defer t
   :mode ("README\\.md\\'" . markdown-mode)
   :hook
   (markdown-mode . visual-line-mode)
   (markdown-mode . visual-fill-column-mode)
   (markdown-mode . adaptive-wrap-prefix-mode)
 ;;  (markdown-mode . centered-cursor-mode)
-  :init (setq markdown-command "multimarkdown"))
+  :init
+  (setq markdown-command "multimarkdown")
+  (setq markdown-asymmetric-header t)
+  (setq markdown-footnote-location 'immediately)
+)
+
+
+(defun wgh/markdown-variablefont ()
+  "Markdown buffers ONLY in classy subtly varwidth font."
+  (face-remap-add-relative 'default '(:family "iA Writer Quattro V"))
+  (set-face-attribute 'markdown-code-face nil :font "iA Writer Mono S")
+  (setq line-spacing 0.125)
+)
+
+(add-hook 'markdown-mode-hook 'wgh/markdown-variablefont)
 
 (use-package json-mode
   :ensure t
@@ -345,8 +381,7 @@
                                               (abbreviate-file-name (buffer-file-name))
                                             "%b"))))
 
-(use-package s)
-(use-package dash)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;; fonts etc ;;;;;;;;;;;;;;;;;;;
@@ -549,6 +584,7 @@
 ;; groovy modeline
 (require 'spaceline-config)
 (spaceline-emacs-theme)
+(spaceline-toggle-buffer-encoding-abbrev-off)
 
 ;; Yet Another Snippet mode -- oh my god, sublime-style tab snippets
 ;; snippets are at -- https://github.com/AndreaCrotti/yasnippet-snippets
@@ -605,9 +641,11 @@
 
 ;; visual previews of regex replacement
 (use-package visual-regexp
+  :defer t
   :ensure t)
 ;; use modern regexp packages instead of all these escaped characters, fuck that
 (use-package visual-regexp-steroids
+  :defer t
   :ensure t)
 (require 'visual-regexp-steroids)
 (setq vr/command-python "python3 /Users/wax/.emacs.d/elpa/visual-regexp-steroids-20170222.253/regexp.py")
@@ -691,12 +729,20 @@
   (setq ivy-wrap t)
   )
 
+(use-package ivy-bibtex
+  :ensure t
+  :defer t)
+
+(setq bibtex-completion-bibliography
+      '("~/Dropbox/highweirdness/highweirdness.bib"))
+
 ;; tell ivy/swiper which regex builders to use:
 ;; swiper (isearch): SPC == .*
 ;; all other: fuzzy matching (.* between each pair of chars)
 (setq ivy-re-builders-alist '((swiper-isearch . ivy--regex-plus)
                               (counsel-grep . ivy--regex-plus)
                               (counsel-ag . ivy--regex-plus)
+                              (ivy-bibtex . ivy--regex-ignore-order)
                               (t      . ivy--regex-fuzzy))
       )
 
@@ -773,6 +819,7 @@
 
 ;; improve discoverability for key commands
 (use-package which-key
+  :defer t
   :config
   (which-key-mode 1))
 
@@ -791,6 +838,7 @@
 
 (use-package org
   ;;    :pin manual
+  :defer t
   :load-path ("lisp/org-mode/lisp" "lisp/org-mode/lisp/contrib/lisp")
   :bind
   (:map org-mode-map
@@ -1096,7 +1144,6 @@
 
 (use-package darkroom
   :commands darkroom-mode
-  :defer t
   :config
   (setq darkroom-text-scale-increase 0)
   (darkroom-mode 0))
@@ -1227,7 +1274,7 @@
 
 ;; add count words paragraph the mode line
 (unless (memq 'count-words-buffer global-mode-string)
-  (add-to-list 'global-mode-string "words: " t)
+  (add-to-list 'global-mode-string "wc: " t)
   (add-to-list 'global-mode-string 'count-words-buffer t))
 
 ;; count number of words in current paragraph
@@ -1262,19 +1309,19 @@
 (use-package dirvish
   :ensure t
   :init
-  ;; Let Dirvish take over Dired globally
-  (dirvish-override-dired-mode)
-  (global-set-key (kbd "s-D") 'dirvish) ;; was previously bound to dired -- can always regress
+  (dirvish-override-dired-mode) ;; Let Dirvish take over Dired globally
+  (global-set-key (kbd "s-D") 'dirvish-dwim) ;; was previously bound to dired -- can always regress
   ;; note that C-x C-j is bound to dired-jump -- which now kicks to dirvish!!
-  (global-set-key (kbd "C-S-s-d") 'dirvish-bookmark-jump)
+  (global-set-key (kbd "C-S-s-d") 'dirvish-quick-access)
   :custom
   (dirvish-quick-access-entries
    '(("h" "~/"                          "Home")
 ;;     ("d" "~/Downloads/"                "Downloads")
      ("d" "~/Dropbox/"                  "Dropbox")
-     ("z" "~/Dropbox/zettel/"           "Zettel")
+     ("z" "~/Dropbox/zettel/"           "zettel")
      ("w" "~/Dropbox/highweirdness/"    "highweirdness")
      ("t" "~/.Trash/"                   "Trash")
+     ("c" "~/code/"                     "code")
      ("e" "~/.emacs.d/"                 ".emacs.d")))
   :config
 ;;  (require 'dirvish-minibuffer-preview)
@@ -1285,7 +1332,9 @@
   (setq dired-mouse-drag-files t)                   ; added in Emacs 29
   (setq mouse-drag-and-drop-region-cross-program t) ; added in Emacs 29
   (setq dired-recursive-copies 'always)
-  (setq dirvish-attributes '(all-the-icons dirvish-minibuffer-preview file-size collapse subtree-state vc-state git-msg dirvish-ls))
+  (setq dirvish-attributes '(all-the-icons dirvish-minibuffer-preview collapse subtree-state dirvish-ls))
+  ;; default ls options for dired listings
+  (setq dired-listing-switches "--almost-all -l -B --group-directories-first -1 -D")
   :bind
   ;; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
   (
@@ -1298,7 +1347,7 @@
    ;; ("l" . dired-find-file)
    ;; ("i" . wdired-change-to-wdired-mode)
    ;; ("." . dired-omit-mode)
-   ("^"   . dired-up-directory) ;; this should be default behaviour, dunno what's up TK
+   ("^"   . dired-up-directory) ;; this should be default behaviour, dunno why needed to include here TK
    ("b"   . dirvish-quick-access) ;; 'b' for 'bookmark'
    ("f"   . dirvish-file-info-menu)
    ("y"   . dirvish-yank-menu)
@@ -1307,7 +1356,9 @@
    ("s"   . dirvish-quicksort)  ; remapped `dired-sort-toggle-or-edit'
    ("?"   . dirvish-dispatch)   ; remapped `dired-summary'
    ("TAB" . dirvish-subtree-toggle)
-   ("SPC" . dirvish-history-jump)
+   ("@" . dirvish-history-jump) ;; think 'address' or 'target'
+   ("SPC" . scroll-up-command) ;; was bound to dirvish-history-jump but to hell w/that
+   ("S-SPC" . scroll-down-command)
    ("M-n" . dirvish-history-go-forward)
    ("M-p" . dirvish-history-go-backward)
    ("M-l" . dirvish-ls-switches-menu)
