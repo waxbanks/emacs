@@ -819,7 +819,6 @@
 
 ;; improve discoverability for key commands
 (use-package which-key
-  :defer t
   :config
   (which-key-mode 1))
 
@@ -1408,8 +1407,8 @@
 
 ;; You will not need to `require' all those individually once the
 ;; package is available.
-(require 'denote-retrieve)
-(require 'denote-link)
+;; (require 'denote-retrieve)
+;; (require 'denote-link)
 
 ;; By default, we fontify backlinks in their bespoke buffer.
 (setq denote-link-fontify-backlinks t)
@@ -1421,7 +1420,7 @@
 ;; right away)
 (add-hook 'find-file-hook #'denote-link-buttonize-buffer)
 
-(require 'denote-dired)
+;;(require 'denote-dired)
 (setq denote-dired-rename-expert nil)
 
 ;; We use different ways to specify a path for demo purposes.
@@ -1462,17 +1461,19 @@
   (define-key map (kbd "C-c n I") #'denote-link-add-links)
   (define-key map (kbd "C-c n l") #'denote-link-find-file) ; "list" links
   (define-key map (kbd "C-c n b") #'denote-link-backlinks)
-  ;; Note that `denote-dired-rename-file' can work from any context, not
-  ;; just Dired bufffers.  That is why we bind it here to the
+  ;; Note that `denote-rename-file' can work from any context, not
+  ;; just Dired buffers.  That is why we bind it here to the
   ;; `global-map'.
-  (define-key map (kbd "C-c n r") #'denote-dired-rename-file)
-  (define-key map (kbd "C-c n R") #'denote-dired-rename-file-and-add-front-matter))
+  (define-key map (kbd "C-c n r") #'denote-rename-file)
+  (define-key map (kbd "C-c n R") #'denote-rename-file-using-front-matter)
+)
 
 ;; Key bindings specifically for Dired.
 (let ((map dired-mode-map))
   (define-key map (kbd "C-c C-d C-i") #'denote-link-dired-marked-notes)
   (define-key map (kbd "C-c C-d C-r") #'denote-dired-rename-marked-files)
-  (define-key map (kbd "C-c C-d C-R") #'denote-dired-rename-marked-files-and-add-front-matters))
+  
+)
 
 (with-eval-after-load 'org-capture
   (require 'denote-org-capture)
