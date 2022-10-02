@@ -25,6 +25,9 @@
 (use-package s)
 (use-package dash)
 
+;; why not
+(setq global-mark-ring-max 32)
+
 (desktop-save-mode 1)
 
 (defun my-markdown-mode-final-newline-config-fn ()
@@ -60,6 +63,7 @@
 ;; preliminaries
 
 ;; use ESC instead of C-g to quit/break/cancel -- works b/c i don't use it to sub for Option (i.e. M-)
+
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
 ;; delete selection works more or less like every other editor,
@@ -241,6 +245,15 @@
 (use-package centered-cursor-mode
   :ensure t)
 
+(use-package all-the-icons-ivy-rich
+  :ensure t
+  :init (all-the-icons-ivy-rich-mode 1))
+
+(use-package ivy-rich
+  :ensure t
+  :init (ivy-rich-mode 1))
+
+
 (use-package ivy-rich
   :ensure t
   :defer t
@@ -283,6 +296,11 @@
 (global-set-key (kbd "M-o") 'ace-window)
 (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)) ;; for ergonomics, else 12345
 (setq aw-dispatch-always t)
+;;; big ace-window leading characters (i.e. a, s, d, f, etc.)
+(custom-set-faces
+ '(aw-leading-char-face
+((t (:foreground "red" :weight bold :height 3.0)))))
+
 
 ;; use ibuffer instead of buffer-menu
 (global-set-key (kbd "C-x C-b") 'ibuffer)
@@ -506,7 +524,7 @@
 ;; no idea why it's putting the cursor at the end of the region, at least in LISP, but...
 (wrap-region-global-mode t)
 (wrap-region-add-wrapper "*" "*")
-
+(wrap-region-add-wrapper "**" "**" "+" 'markdown-mode)
 
 ;; markdown mode automatically for .md{own} and .txt; scheme for .scm
 (add-to-list 'auto-mode-alist '("\\.txt\\'" . markdown-mode))
@@ -558,6 +576,8 @@
 ;; good old Option+arrow
 (global-set-key (kbd "M-<up>") 'markdown-backward-paragraph)
 (global-set-key (kbd "M-<down>") 'markdown-forward-paragraph)
+(global-set-key (kbd "M-[") 'markdown-backward-paragraph)
+(global-set-key (kbd "M-]") 'markdown-forward-paragraph)
 (global-set-key (kbd "s-<up>") 'beginning-of-buffer)
 (global-set-key (kbd "s-<down>") 'end-of-buffer)
 
@@ -583,8 +603,53 @@
 
 ;; groovy modeline
 (require 'spaceline-config)
-(spaceline-emacs-theme)
+(spaceline-spacemacs-theme)
 (spaceline-toggle-buffer-encoding-abbrev-off)
+(setq powerline-default-separator 'wave)
+(spaceline-toggle-minor-modes-off)
+(spaceline-toggle-hud-on)
+(setq spaceline-highlight-face-func 'spaceline-highlight-face-evil-state)
+(set-face-attribute 'spaceline-evil-emacs nil :background "#be84ff")
+(set-face-attribute 'spaceline-evil-insert nil :background "#5fd7ff")
+(set-face-attribute 'spaceline-evil-motion nil :background "#ae81ff")
+(set-face-attribute 'spaceline-evil-normal nil :background "#a6e22e")
+(set-face-attribute 'spaceline-evil-replace nil :background "#f92672")
+(set-face-attribute 'spaceline-evil-visual nil :background "#fd971f")
+(powerline-reset)
+
+(use-package evil
+  :ensure t
+  :config
+
+  ;;(evil-mode 1)
+  (use-package evil-leader
+    :ensure t
+    :config
+    (global-evil-leader-mode t)
+    (evil-leader/set-leader ",")
+    (evil-leader/set-key
+      "s s" 'swiper
+      "d x w" 'delete-trailing-whitespace))
+
+  (use-package evil-surround
+    :ensure t
+    :config (global-evil-surround-mode))
+
+  ;; evil-goggles https://github.com/edkolev/evil-goggles
+  (use-package evil-goggles
+  :ensure t
+  :config
+  (evil-goggles-mode)
+
+  ;; optionally use diff-mode's faces; as a result, deleted text
+  ;; will be highlighed with `diff-removed` face which is typically
+  ;; some red color (as defined by the color theme)
+  ;; other faces such as `diff-added` will be used for other actions
+  (evil-goggles-use-diff-faces)))
+
+
+
+
 
 ;; Yet Another Snippet mode -- oh my god, sublime-style tab snippets
 ;; snippets are at -- https://github.com/AndreaCrotti/yasnippet-snippets
@@ -767,6 +832,7 @@
 (global-set-key (kbd "<f1> l") 'counsel-find-library)
 (global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
 (global-set-key (kbd "<f2> u") 'counsel-unicode-char)
+;; (global-set-key (kbd "C-M-j") 'ivy-switch-buffer) ;; consider this tk
 ;; (global-set-key (kbd "C-c g") 'counsel-git)
 ;; (global-set-key (kbd "C-c j") 'counsel-git-grep)
 ;; (global-set-key (kbd "C-c k") 'counsel-ag)
@@ -918,7 +984,7 @@
       1 'org-checkbox-done-text prepend))
    'append)
   (let* ((variable-tuple
-          (cond ((x-list-fonts   "SF Mono")         '(:font   "SF Mono"))
+          (cond ((x-lssist-fonts   "SF Mono")         '(:font   "SF Mono"))
                 ((x-list-fonts   "Source Sans Pro") '(:font   "Source Sans Pro"))
                 ((x-list-fonts   "Lucida Grande")   '(:font   "Lucida Grande"))
                 ((x-list-fonts   "Verdana")         '(:font   "Verdana"))
@@ -1003,7 +1069,7 @@
 ;; (use-package vulpea
 ;;   :ensure t
 ;;   ;; hook into org-roam-db-autosync-mode you wish to enable
-;;   ;; persistence of meta values (see respective section in README to
+;;   ;; persistence of meta values (see ective section in README to
 ;;   ;; find out what meta means)
 ;;   :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable)))
 
@@ -1309,11 +1375,11 @@
   :ensure t
   :init
   (dirvish-override-dired-mode) ;; Let Dirvish take over Dired globally
-  (global-set-key (kbd "s-D") 'dirvish-dwim) ;; was previously bound to dired -- can always regress
+  (global-set-key (kbd "s-d") 'dirvish-dwim)
   ;; note that C-x C-j is bound to dired-jump -- which now kicks to dirvish!!
   (global-set-key (kbd "C-S-s-d") 'dirvish-quick-access)
   :custom
-  (dirvish-quick-access-entries
+  (dirvish-quick-access-entries;
    '(("h" "~/"                          "Home")
 ;;     ("d" "~/Downloads/"                "Downloads")
      ("d" "~/Dropbox/"                  "Dropbox")
@@ -1381,7 +1447,7 @@
 (require 'denote)
 
 (with-eval-after-load 'org-capture
-  (require 'denote-org-capture)
+;;  (require 'denote-org-capture)
   (add-to-list 'org-capture-templates
                '("n" "New note (with Denote)" plain
                  (file denote-last-path)
@@ -1427,7 +1493,8 @@
 (setq denote-dired-directories
       (list denote-directory
             (thread-last denote-directory (expand-file-name "attachments"))
-            (expand-file-name "~/Documents/books")))
+            (expand-file-name "~/Documents/books")
+            (expand-file-name "~/Dropbox/zettel/starwarsd6")))
 
 ;; Generic (great if you rename files Denote-style in lots of places):
 ;; (add-hook 'dired-mode-hook #'denote-dired-mode)
@@ -1473,20 +1540,26 @@
   (define-key map (kbd "C-c C-d C-i") #'denote-link-dired-marked-notes)
   (define-key map (kbd "C-c C-d C-r") #'denote-dired-rename-marked-files)
   
-)
+  )
 
-(with-eval-after-load 'org-capture
-  (require 'denote-org-capture)
-  (setq denote-org-capture-specifiers "%l\n%i\n%?")
-  (add-to-list 'org-capture-templates
-               '("n" "New note (with denote.el)" plain
-                 (file denote-last-path)
-                 #'denote-org-capture
-                 :no-save t
-                 :immediate-finish nil
-                 :kill-buffer t
-                 :jump-to-captured t)))
 
+(setq consult-notes-sources
+      `(("Notes"  ?n ,denote-directory)
+        ;; ("Books"  ?b "~/Documents/books")
+        ))
+
+
+;; accent-mode -- C-x C-a in markdown/text to bring up accented-character options
+
+(use-package accent
+  :ensure t
+  )
+
+(define-key markdown-mode-map "\C-x\C-a" 'accent-menu)
+
+(setq accent-custom '((\? (¿))
+                      (! (¡))                      
+                      ))
 
 
 
