@@ -26,7 +26,7 @@
 (use-package dash)
 
 ;; why not
-(setq global-mark-ring-max 32)
+(setq global-mark-ring-max 16)
 
 (desktop-save-mode 1)
 
@@ -305,11 +305,28 @@
 ;; use ibuffer instead of buffer-menu
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
-;; sane undo --wgh
-(global-undo-tree-mode)
-(setq-default undo-tree-auto-save-history nil)
+;; ;; undo-tree -- putting aside to try undo-fu, which should be lighter (i never use tree viz anyway)
+;; (global-undo-tree-mode)
+;; (setq-default undo-tree-auto-save-history nil)
+;; (setq undo-tree-enable-undo-in-region nil)
 
+;; note that s- == 'super' == 'Cmd'
 
+;; (global-set-key (kbd "s-Z") 'undo-tree-redo) ;; as opposed to built-in redo, obvsly
+
+;; ;; sane undo --wgh
+(use-package undo-fu
+  :ensure t
+  :config
+  (global-set-key (kbd "s-z")   'undo-fu-only-undo)
+  (global-set-key (kbd "s-Z") 'undo-fu-only-redo)
+  (global-undo-fu-session-mode)
+)
+
+;; raise emacs undo history size limits because it's the 21st century
+(setq undo-limit 6710886400) ;; 64mb.
+(setq undo-strong-limit 100663296) ;; 96mb.
+(setq undo-outer-limit 1006632960) ;; 960mb.
 
 
 
@@ -363,7 +380,7 @@
   :defer t)
 
 ;; md-roam needs to be loaded before org-roam
-;;  (setq org-roam-file-extensions '("org" "md" "mdown")) ; enable Org-roam to use markdown extension
+;;  (setq org-iroam-file-extensions '("org" "md" "mdown")) ; enable Org-roam to use markdown extension
 
 ;; (require 'md-roam)
 ;; (md-roam-mode 1)
@@ -549,6 +566,7 @@
 (add-hook 'ielm-mode-hook 'rainbow-delimiters-mode)
 (add-hook 'lisp-interaction-mode-hook 'rainbow-delimiters-mode)
 (add-hook 'lisp-mode-hook 'rainbow-delimiters-mode)
+(add-hook 'scheme-mode-hook 'rainbow-delimiters-mode)
 
 ;; Customize Rainbow Delimiters.
 (require 'rainbow-delimiters)
@@ -581,8 +599,6 @@
 (global-set-key (kbd "s-<up>") 'beginning-of-buffer)
 (global-set-key (kbd "s-<down>") 'end-of-buffer)
 
-;; note that s- == 'super' == 'Cmd'
-(global-set-key (kbd "s-Z") 'undo-tree-redo) ;; as opposed to built-in redo, obvsly
 
 
 ;; Start server.
@@ -683,10 +699,16 @@
 ;; (setq-default visual-fill-column-center-text t)
 
 ;; let's get scheme running for some SICP action TODO
-;;(setq geiser-mit-binary "/usr/local/bin/scheme")
-;;(setq geiser-active-implementations '(mit))
+(setq geiser-mit-binary "/usr/local/bin/scheme")
+(setq geiser-active-implementations '(mit))
 
 (setq-default scheme-program-name "/usr/local/bin/scheme")
+
+(use-package xscheme
+  :defer t
+  :ensure t)
+
+(require 'xscheme)
 
 ;; expand selected region, excellent
 (require 'expand-region)
@@ -1030,7 +1052,7 @@
 ;;   :init
 ;;   (setq org-roam-v2-ack t)
 ;;   :custom
-;;   (org-roam-directory "~/orgroam-wax/")
+(setq org-roam-directory "~/orgroam-wax/")
 ;;   (org-roam-completion-everywhere t)
   
 ;;   :bind (("C-c n l" . org-roam-buffer-toggle)
@@ -1192,13 +1214,13 @@
 ;; (global-set-key (kbd "C-c n r") 'jmb/counsel-ag-roam)
 
 ;; transient highlighting of certain buffer operations, e.g. paste/undo
-(use-package volatile-highlights
-  :defer t
-  :ensure t
-  :diminish
-  :config
-  (volatile-highlights-mode t)
-  )
+;; (use-package volatile-highlights
+;;   :defer t
+;;   :ensure t
+;;   :diminish
+;;   :config
+;;   (volatile-highlights-mode t)
+;;   )
 
 ;; writeroom-mode is interesting, just not on a vertical monitor.
 ;; darkroom-mode doesn't alter the frame, which is probably what i want.
@@ -1355,7 +1377,7 @@
       count)))
 
 ;; set the fucking default font size!!
-(set-face-attribute 'default t :height 180)
+(set-face-attribute 'default t :height 200)
 
 ;; use marked.app to preview markdown files
 ;; Getting emacs to use the 'Marked' app
@@ -1512,6 +1534,11 @@
    (denote--title-prompt)
    '("journal")))
 
+(defun wgh/zettel-ag ()
+  "Search only the denote notes/zettel directory structure."
+  (interactive)
+  (counsel-ag "" denote-directory nil "Search in zettel: "))
+
 ;; Denote DOES NOT define any key bindings.  This is for the user to
 ;; decide.  For example:
 (let ((map global-map))
@@ -1533,6 +1560,12 @@
   ;; `global-map'.
   (define-key map (kbd "C-c n r") #'denote-rename-file)
   (define-key map (kbd "C-c n R") #'denote-rename-file-using-front-matter)
+  
+  ;; ok let's quickly search notes dir
+  ;; search for "title STRING" or "tag STRING" etc to search fields, this is good
+  (define-key map (kbd "C-c n a") #'wgh/zettel-ag) ;; (a for ag/all) fulltext search, vs consult-notes which is filenames
+  ;; search filename list, this is good but doesn't search fulltext
+  (define-key map (kbd "C-c n f") #'consult-notes) ;; (f for filenames) we define consult-notes-sources already
 )
 
 ;; Key bindings specifically for Dired.
@@ -1543,28 +1576,41 @@
   )
 
 
-(setq consult-notes-sources
+(use-package consult-notes
+  :ensure t
+  :commands (consult-notes
+             consult-notes-search-in-all-notes)
+  :config
+  (setq consult-notes-sources
       `(("Notes"  ?n ,denote-directory)
         ;; ("Books"  ?b "~/Documents/books")
         ))
+  ;; Set org-roam integration OR denote integration
+    (when (locate-library "denote")
+  (consult-notes-denote-mode)))
+
+
 
 
 ;; accent-mode -- C-x C-a in markdown/text to bring up accented-character options
 
-(use-package accent
-  :ensure t
-  )
+;; (use-package accent
+;;   :ensure t
+;;   )
 
-(define-key markdown-mode-map "\C-x\C-a" 'accent-menu)
+;; (define-key markdown-mode-map "\C-x\C-a" 'accent-menu)
 
-(setq accent-custom '((\? (¿))
-                      (! (¡))                      
-                      ))
+;; (setq accent-custom '((\? (¿))
+;;                       (! (¡))                      
+;;                       ))
 
 
 
 ;;;; enable sane right-click behaviour -- i never, ever want the default
 (context-menu-mode)
+
+;; let's use embark actions all over!!
+(global-set-key (kbd "s-.") 'embark-act)
 
 ;; highlight results when using M-x ag
 (setq ag-highlight-search t)
