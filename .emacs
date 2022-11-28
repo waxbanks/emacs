@@ -727,17 +727,37 @@
 
 
 ;; visual previews of regex replacement
-(use-package visual-regexp
-  :defer t
-  :ensure t)
+;; (use-package visual-regexp
+;;   :defer t
+;;   :ensure t)
 ;; use modern regexp packages instead of all these escaped characters, fuck that
 (use-package visual-regexp-steroids
   :defer t
   :ensure t)
 (require 'visual-regexp-steroids)
 (setq vr/command-python "python3 /Users/wax/.emacs.d/elpa/visual-regexp-steroids-20170222.253/regexp.py")
-(define-key global-map (kbd "C-c r") 'vr/replace)
+
+
+;; instead of using advice (which is the real approach) this helper initiates search/replace for region or from top
+;; this is extremely slow and frustrating. what the fuck
+(defun wgh/replace-region-or-from-top ()   
+  (interactive)
+  (progn
+ 
+    ;; (let ((orig-point (point)))
+      ;; (if (use-region-p)
+      ;;     (call-interactively 'vr/replace)
+      (save-excursion
+        (goto-char (point-min))
+        (call-interactively 'vr/replace)))
+    ;; (message "Back to old point.")
+;      (goto-char orig-point)
+  )
+
+;; (define-key global-map (kbd "C-c r") 'wgh/replace-region-or-from-top) ;; slow to return, todo tk
 (define-key global-map (kbd "C-c q") 'vr/query-replace)
+(define-key global-map (kbd "C-c r") 'vr/replace) ;; the original command, without the save-excursion
+
 ;; if you use multiple-cursors, this is for you:
 ;; (define-key global-map (kbd "C-c m") 'vr/mc-mark)
 
@@ -1282,14 +1302,29 @@
 ;; cmd-w, the macos shortcut. accept no substitutes.
 (global-set-key (kbd "s-w") #'kill-current-buffer)
 
+;; jumping to previous position -- on the mark ring
+;; ctrl-space ctrl-space to mark position
 
+(global-set-key (kbd "s-[") #'pop-to-mark-command)
 
+(defun unpop-to-mark-command ()
+  "Unpop off mark ring. Does nothing if mark ring is empty."
+  (interactive)
+  (when mark-ring
+    (let ((pos (marker-position (car (last mark-ring)))))
+      (if (not (= (point) pos))
+          (goto-char pos)
+        (setq mark-ring (cons (copy-marker (mark-marker)) mark-ring))
+        (set-marker (mark-marker) pos)
+        (setq mark-ring (nbutlast mark-ring))
+        (goto-char (marker-position (car (last mark-ring))))))))
+
+(global-set-key (kbd "s-]") #'unpop-to-mark-command)
 
 
 ;; xah lee efficiency advice
 (defalias 'yes-or-no-p 'y-or-n-p) ; y or n is enough
 (defalias 'list-buffers 'ibuffer) ; always use ibuffer
-
 
 
 ;; (when (>= emacs-major-version 26)
@@ -1622,7 +1657,7 @@
 ;;;;;; shelved for now ;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; filladapt should give us autonumbering and multipar quotes in mdown;;
+;; filladapt should give us autonumbering and multipar quotes in mdown
 ;; (require 'filladapt)
 ;; (add-hook 'markdown-mode-hook #'filladapt-mode)
 
@@ -1639,6 +1674,7 @@
 ;; (setq x-underline-at-descent-line t)
 ;; (centaur-tabs-change-fonts "Helvetica" 160)
 
-;; let's load a custom library
+
 ;; (load-library "markup-faces")
 
+;;jumpoff
